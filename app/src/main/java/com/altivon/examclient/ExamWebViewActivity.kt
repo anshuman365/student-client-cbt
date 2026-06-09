@@ -2,7 +2,6 @@ package com.altivon.examclient
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.webkit.WebSettings
@@ -24,14 +23,18 @@ class ExamWebViewActivity : AppCompatActivity() {
         configureWebView()
 
         val cookie = intent.getStringExtra("session_cookie")
+        val systemId = intent.getStringExtra("system_id") ?: AppPreferences.getComputerNumber(this).let { "ANDROID-$it" }
+        val hw = intent.getStringExtra("hardware_signature") ?: AppPreferences.getHardwareId(this)
+
+        // Set cookie for the server domain
+        val serverIp = AppPreferences.getServerIp(this)
         if (cookie != null) {
-            val serverIp = AppPreferences.getServerIp(this)
             CookieManager.getInstance().setCookie("http://$serverIp", cookie.split(";")[0])
         }
 
-        val serverIp = AppPreferences.getServerIp(this)
+        // Load instructions with system_id and hw in URL (for the banner allocation fetch)
         val port = AppPreferences.getServerPort(this)
-        val url = "http://$serverIp:$port/instructions"
+        val url = "http://$serverIp:$port/instructions?system_id=$systemId&hw=$hw"
         webView.loadUrl(url)
     }
 
@@ -49,5 +52,5 @@ class ExamWebViewActivity : AppCompatActivity() {
         webView.webViewClient = WebViewClient()
     }
 
-    override fun onBackPressed() { }  // disable back
+    override fun onBackPressed() { }  // disable back button
 }

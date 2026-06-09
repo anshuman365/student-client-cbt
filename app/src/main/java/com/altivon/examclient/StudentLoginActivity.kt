@@ -10,6 +10,7 @@ import com.google.android.material.textfield.TextInputEditText
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
 class StudentLoginActivity : AppCompatActivity() {
 
@@ -48,7 +49,9 @@ class StudentLoginActivity : AppCompatActivity() {
         val compNum = AppPreferences.getComputerNumber(this)
         val systemId = "ANDROID-$compNum"
 
-        val urlString = "http://$serverIp:$port/login?system_id=$systemId&hw=$hw"
+        // IMPORTANT: system_id and hw must be in the query string
+        val urlString = "http://$serverIp:$port/login?system_id=${URLEncoder.encode(systemId, "UTF-8")}&hw=${URLEncoder.encode(hw, "UTF-8")}"
+
         Thread {
             try {
                 val url = URL(urlString)
@@ -56,16 +59,21 @@ class StudentLoginActivity : AppCompatActivity() {
                 conn.requestMethod = "POST"
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
                 conn.doOutput = true
-                val params = "roll_number=$roll&password=$pass"
+                val params = "roll_number=${URLEncoder.encode(roll, "UTF-8")}&password=${URLEncoder.encode(pass, "UTF-8")}"
                 OutputStreamWriter(conn.outputStream).use { it.write(params) }
+
                 val responseCode = conn.responseCode
+                // Read Set-Cookie header
                 val cookieHeader = conn.getHeaderField("Set-Cookie")
                 conn.disconnect()
 
                 if (responseCode == 302 || responseCode == 200) {
+                    // Login successful – store cookie and launch WebView
                     runOnUiThread {
                         val intent = Intent(this, ExamWebViewActivity::class.java).apply {
                             putExtra("session_cookie", cookieHeader)
+                            putExtra("system_id", systemId)
+                            putExtra("hardware_signature", hw)
                         }
                         startActivity(intent)
                         finish()
