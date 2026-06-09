@@ -3,6 +3,7 @@ package com.altivon.examclient
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.webkit.CookieManager
+import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -21,17 +22,16 @@ class ExamWebViewActivity : AppCompatActivity() {
         webView = findViewById(R.id.examWebView)
         configureWebView()
 
-        // Ensure WebView uses the same cookie store as the global CookieManager
+        // Ensure WebView uses the same cookie store
         CookieManager.getInstance().setAcceptCookie(true)
-        // Sync cookies from global CookieManager (they are already stored by HttpURLConnection)
-        // No need to manually set – the WebView will use the same cookie jar.
+        CookieManager.getInstance().flush()
 
         val systemId = intent.getStringExtra("system_id") ?: AppPreferences.getComputerNumber(this).let { "ANDROID-$it" }
         val hw = intent.getStringExtra("hardware_signature") ?: AppPreferences.getHardwareId(this)
         val serverIp = AppPreferences.getServerIp(this)
         val port = AppPreferences.getServerPort(this)
 
-        // Load instructions with system_id and hw for the banner (optional but good)
+        // Load instructions with query parameters (for banner API calls inside the page)
         val url = "http://$serverIp:$port/instructions?system_id=$systemId&hw=$hw"
         webView.loadUrl(url)
     }
@@ -47,8 +47,16 @@ class ExamWebViewActivity : AppCompatActivity() {
             cacheMode = WebSettings.LOAD_NO_CACHE
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
+                consoleMessage?.let {
+                    android.util.Log.d("WebView", "${it.message()}")
+                }
+                return true
+            }
+        }
         webView.webViewClient = WebViewClient()
     }
 
-    override fun onBackPressed() { }  // disable back button
+    override fun onBackPressed() { } // disable back button
 }
