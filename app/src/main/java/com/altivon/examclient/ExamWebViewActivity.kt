@@ -2,7 +2,7 @@ package com.altivon.examclient
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.graphics.Color
+import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -50,8 +50,10 @@ class ExamWebViewActivity : AppCompatActivity() {
             showBlockedDialog("Emulator detected. Exam cannot start.")
             return
         }
-        // Skip ADB and Developer Options checks in DEBUG builds (for testing)
-        if (!BuildConfig.DEBUG) {
+
+        // Only enforce ADB / Developer Options checks if the app is NOT debuggable
+        val isDebuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        if (!isDebuggable) {
             if (SecurityChecker.isAdbEnabled(this)) {
                 showBlockedDialog("USB Debugging is enabled. Disable it and restart.")
                 return
