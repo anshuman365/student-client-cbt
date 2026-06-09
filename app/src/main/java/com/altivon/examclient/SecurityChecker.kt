@@ -1,6 +1,7 @@
 package com.altivon.examclient
 
 import android.content.Context
+import android.os.Build
 import android.provider.Settings
 import java.io.File
 
@@ -82,5 +83,3 @@ object SecurityChecker {
         ) == 1
     }
 }
-
-private val Build get() = android.os.Build
