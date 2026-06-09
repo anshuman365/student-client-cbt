@@ -32,16 +32,19 @@
         <activity
             android:name=".SetupActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize" />
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".StudentLoginActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
         <activity
             android:name=".ExamWebViewActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             android:launchMode="singleInstance"
-            android:noHistory="true"
-            android:excludeFromRecents="true" />
+            android:noHistory="true" />
 
         <service
             android:name=".HeartbeatService"

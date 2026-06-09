@@ -8,7 +8,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (AppPreferences.isSetupDone(this)) {
-            startActivity(Intent(this, ExamWebViewActivity::class.java))
+            startActivity(Intent(this, StudentLoginActivity::class.java))
         } else {
             startActivity(Intent(this, SetupActivity::class.java))
         }
