@@ -1,7 +1,6 @@
 package com.altivon.examclient
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.webkit.WebSettings
@@ -22,18 +21,17 @@ class ExamWebViewActivity : AppCompatActivity() {
         webView = findViewById(R.id.examWebView)
         configureWebView()
 
-        val cookie = intent.getStringExtra("session_cookie")
+        // Ensure WebView uses the same cookie store as the global CookieManager
+        CookieManager.getInstance().setAcceptCookie(true)
+        // Sync cookies from global CookieManager (they are already stored by HttpURLConnection)
+        // No need to manually set – the WebView will use the same cookie jar.
+
         val systemId = intent.getStringExtra("system_id") ?: AppPreferences.getComputerNumber(this).let { "ANDROID-$it" }
         val hw = intent.getStringExtra("hardware_signature") ?: AppPreferences.getHardwareId(this)
-
-        // Set cookie for the server domain
         val serverIp = AppPreferences.getServerIp(this)
-        if (cookie != null) {
-            CookieManager.getInstance().setCookie("http://$serverIp", cookie.split(";")[0])
-        }
-
-        // Load instructions with system_id and hw in URL (for the banner allocation fetch)
         val port = AppPreferences.getServerPort(this)
+
+        // Load instructions with system_id and hw for the banner (optional but good)
         val url = "http://$serverIp:$port/instructions?system_id=$systemId&hw=$hw"
         webView.loadUrl(url)
     }
