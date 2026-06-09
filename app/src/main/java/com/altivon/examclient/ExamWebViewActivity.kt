@@ -10,10 +10,7 @@ import android.os.Looper
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.webkit.*
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -32,34 +29,14 @@ class ExamWebViewActivity : AppCompatActivity() {
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
         )
-        window.decorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            or View.SYSTEM_UI_FLAG_FULLSCREEN
-        )
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        if (SecurityChecker.isRooted()) {
-            showBlockedDialog("Rooted device detected. Exam cannot start.")
-            return
-        }
-        if (SecurityChecker.isEmulator()) {
-            showBlockedDialog("Emulator detected. Exam cannot start.")
-            return
-        }
-
-        // Only enforce ADB / Developer Options checks if the app is NOT debuggable
+        // Skip security checks for debug builds
         val isDebuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         if (!isDebuggable) {
-            if (SecurityChecker.isAdbEnabled(this)) {
-                showBlockedDialog("USB Debugging is enabled. Disable it and restart.")
-                return
-            }
-            if (SecurityChecker.isDeveloperOptionsEnabled(this)) {
-                showBlockedDialog("Developer Options are enabled. Disable them and restart.")
+            if (SecurityChecker.isRooted() || SecurityChecker.isEmulator() ||
+                SecurityChecker.isAdbEnabled(this) || SecurityChecker.isDeveloperOptionsEnabled(this)) {
+                showBlockedDialog("Security violation")
                 return
             }
         }
@@ -69,7 +46,7 @@ class ExamWebViewActivity : AppCompatActivity() {
         configureWebView()
 
         HeartbeatService.examActive = true
-        HeartbeatService.autoSubmitCallback = { runOnUiThread { triggerAutoSubmit("Security violation detected") } }
+        HeartbeatService.autoSubmitCallback = { runOnUiThread { triggerAutoSubmit("Security violation") } }
         val serviceIntent = Intent(this, HeartbeatService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent)
@@ -78,7 +55,89 @@ class ExamWebViewActivity : AppCompatActivity() {
         }
 
         val url = AppPreferences.getExamUrl(this)
+        Toast.makeText(this, "Loading: $url", Toast.LENGTH_LONG).show()
         webView.loadUrl(url)
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun configureWebView() {
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            loadWithOverviewMode = true
+            useWideViewPort = true
+            setSupportZoom(false)
+            builtInZoomControls = false
+            displayZoomControls = false
+            allowFileAccess = false
+            allowContentAccess = false
+            cacheMode = WebSettings.LOAD_NO_CACHE
+            // Use default user agent to avoid server issues
+            userAgentString = null
+            saveFormData = false
+            savePassword = false
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        }
+
+        webView.isLongClickable = false
+        webView.setOnLongClickListener { true }
+
+        // Enable remote debugging (Chrome inspect)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
+
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                consoleMessage?.let {
+                    android.util.Log.d("WebView", "${it.message()} (${it.sourceId()}:${it.lineNumber()})")
+                    Toast.makeText(this@ExamWebViewActivity, "JS: ${it.message()}", Toast.LENGTH_SHORT).show()
+                }
+                return true
+            }
+
+            override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                super.onProgressChanged(view, newProgress)
+                if (newProgress == 100) {
+                    Toast.makeText(this@ExamWebViewActivity, "Page loaded 100%", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        val configuredIp = AppPreferences.getServerIp(this)
+
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                val host = request?.url?.host ?: return true
+                return host != configuredIp
+            }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                Toast.makeText(this@ExamWebViewActivity, "Page finished: $url", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?
+            ) {
+                super.onReceivedError(view, request, error)
+                val msg = "Error ${error?.errorCode}: ${error?.description}"
+                android.util.Log.e("WebView", msg)
+                Toast.makeText(this@ExamWebViewActivity, msg, Toast.LENGTH_LONG).show()
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                errorResponse: WebResourceResponse?
+            ) {
+                super.onReceivedHttpError(view, request, errorResponse)
+                val msg = "HTTP ${errorResponse?.statusCode} for ${request?.url}"
+                Toast.makeText(this@ExamWebViewActivity, msg, Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     override fun onResume() {
@@ -96,7 +155,7 @@ class ExamWebViewActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         if (HeartbeatService.examActive) {
-            triggerAutoSubmit("App lost focus / moved to background")
+            triggerAutoSubmit("App lost focus")
         }
     }
 
@@ -108,7 +167,7 @@ class ExamWebViewActivity : AppCompatActivity() {
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (!hasFocus && HeartbeatService.examActive) {
-            triggerAutoSubmit("Window focus lost")
+            triggerAutoSubmit("Focus lost")
         }
     }
 
@@ -120,69 +179,17 @@ class ExamWebViewActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        // Disable back button
-    }
+    @Deprecated("Deprecated")
+    override fun onBackPressed() { }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return when (keyCode) {
-            KeyEvent.KEYCODE_HOME,
-            KeyEvent.KEYCODE_APP_SWITCH,
-            KeyEvent.KEYCODE_SEARCH,
-            KeyEvent.KEYCODE_ASSIST,
-            KeyEvent.KEYCODE_MENU -> {
-                triggerAutoSubmit("Restricted key pressed: $keyCode")
+            KeyEvent.KEYCODE_HOME, KeyEvent.KEYCODE_APP_SWITCH,
+            KeyEvent.KEYCODE_SEARCH, KeyEvent.KEYCODE_ASSIST, KeyEvent.KEYCODE_MENU -> {
+                triggerAutoSubmit("Restricted key")
                 true
             }
             else -> super.onKeyDown(keyCode, event)
-        }
-    }
-
-    @SuppressLint("SetJavaScriptEnabled")
-    private fun configureWebView() {
-        webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            loadWithOverviewMode = true
-            useWideViewPort = true
-            setSupportZoom(false)
-            builtInZoomControls = false
-            displayZoomControls = false
-            allowFileAccess = false
-            allowContentAccess = false
-            cacheMode = WebSettings.LOAD_NO_CACHE
-            userAgentString = "ExamClient/1.0 Android"
-            saveFormData = false
-            savePassword = false
-        }
-
-        webView.isLongClickable = false
-        webView.setOnLongClickListener { true }
-
-        val configuredIp = AppPreferences.getServerIp(this)
-
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(
-                view: WebView?,
-                request: WebResourceRequest?
-            ): Boolean {
-                val host = request?.url?.host ?: return true
-                return host != configuredIp
-            }
-
-            override fun onReceivedError(
-                view: WebView?,
-                errorCode: Int,
-                description: String?,
-                failingUrl: String?
-            ) {
-                Toast.makeText(
-                    this@ExamWebViewActivity,
-                    "Connection error: $description",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
         }
     }
 
@@ -190,28 +197,17 @@ class ExamWebViewActivity : AppCompatActivity() {
         if (autoSubmitTriggered) return
         autoSubmitTriggered = true
         HeartbeatService.examActive = false
-
-        Toast.makeText(this, "⚠ Exam auto-submitted: $reason", Toast.LENGTH_LONG).show()
-
+        Toast.makeText(this, "Auto-submit: $reason", Toast.LENGTH_LONG).show()
         val js = """
             (function() {
-                if (typeof saveAnswersSync === 'function') {
-                    saveAnswersSync();
-                }
+                if (typeof saveAnswersSync === 'function') saveAnswersSync();
                 setTimeout(function() {
-                    var form = document.getElementById('submit-form');
-                    if (form) {
-                        form.submit();
-                    } else {
-                        var forms = document.getElementsByTagName('form');
-                        if (forms.length > 0) forms[0].submit();
-                    }
+                    var f = document.getElementById('submit-form') || document.querySelector('form');
+                    if (f) f.submit();
                 }, 500);
             })();
         """.trimIndent()
-
         webView.evaluateJavascript(js, null)
-
         handler.postDelayed({
             stopService(Intent(this, HeartbeatService::class.java))
             finish()
