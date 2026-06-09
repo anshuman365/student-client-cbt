@@ -1,0 +1,2 @@
+-keep class com.altivon.examclient.** { *; }
+-keepclassmembers class com.altivon.examclient.** { *; }

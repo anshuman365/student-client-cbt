@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Exam Client</string>
+    <string name="setup_title">First-Time Setup</string>
+    <string name="heartbeat_channel">Exam Session</string>
+</resources>

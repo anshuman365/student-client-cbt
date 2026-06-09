@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:padding="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exam Client Setup"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textColor="@color/gold"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Configure once to connect to your exam server"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="32dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SERVER IP ADDRESS"
+            android:textSize="11sp"
+            android:textColor="@color/gold"
+            android:letterSpacing="0.12"
+            android:layout_marginBottom="6dp" />
+
+        <EditText
+            android:id="@+id/etServerIp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="e.g. 192.168.1.100"
+            android:inputType="textUri"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary"
+            android:background="@drawable/input_background"
+            android:padding="14dp"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SERVER PORT"
+            android:textSize="11sp"
+            android:textColor="@color/gold"
+            android:letterSpacing="0.12"
+            android:layout_marginBottom="6dp" />
+
+        <EditText
+            android:id="@+id/etServerPort"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="5000"
+            android:inputType="number"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary"
+            android:background="@drawable/input_background"
+            android:padding="14dp"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SEAT / COMPUTER NUMBER"
+            android:textSize="11sp"
+            android:textColor="@color/gold"
+            android:letterSpacing="0.12"
+            android:layout_marginBottom="6dp" />
+
+        <EditText
+            android:id="@+id/etComputerNumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="e.g. 12"
+            android:inputType="number"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary"
+            android:background="@drawable/input_background"
+            android:padding="14dp"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:id="@+id/tvDeviceId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:background="@drawable/card_background"
+            android:padding="12dp"
+            android:layout_marginBottom="32dp" />
+
+        <Button
+            android:id="@+id/btnSaveSetup"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="SAVE &amp; START EXAM"
+            android:textColor="@color/bg_dark"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:backgroundTint="@color/gold"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btnReset"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Reset Configuration"
+            android:textColor="@color/text_secondary"
+            style="?attr/borderlessButtonStyle"
+            android:layout_marginBottom="32dp" />
+
+    </LinearLayout>
+</ScrollView>
