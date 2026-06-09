@@ -50,13 +50,16 @@ class ExamWebViewActivity : AppCompatActivity() {
             showBlockedDialog("Emulator detected. Exam cannot start.")
             return
         }
-        if (SecurityChecker.isAdbEnabled(this)) {
-            showBlockedDialog("USB Debugging is enabled. Disable it and restart.")
-            return
-        }
-        if (SecurityChecker.isDeveloperOptionsEnabled(this)) {
-            showBlockedDialog("Developer Options are enabled. Disable them and restart.")
-            return
+        // Skip ADB and Developer Options checks in DEBUG builds (for testing)
+        if (!BuildConfig.DEBUG) {
+            if (SecurityChecker.isAdbEnabled(this)) {
+                showBlockedDialog("USB Debugging is enabled. Disable it and restart.")
+                return
+            }
+            if (SecurityChecker.isDeveloperOptionsEnabled(this)) {
+                showBlockedDialog("Developer Options are enabled. Disable them and restart.")
+                return
+            }
         }
 
         setContentView(R.layout.activity_exam_webview)
